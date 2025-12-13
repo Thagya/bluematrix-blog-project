@@ -43,7 +43,7 @@ export default function RegisterPage() {
         password: formData.password,
       });
       setSuccess(true);
-      setTimeout(() => router.push('/login'), 2000);
+      setTimeout(() => router.push('/auth/login'), 2000);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -129,7 +129,7 @@ export default function RegisterPage() {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">
               Sign in here
             </Link>
           </div>

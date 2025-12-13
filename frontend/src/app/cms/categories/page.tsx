@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Loading } from '@/components/ui/Loading';
 import { generateSlug } from '@/lib/utils';
 import { Category } from '@/types';
+import toast from 'react-hot-toast';
 
 export default function CategoriesPage() {
   const { categories, loading, refetch } = useCategories();
@@ -43,13 +44,15 @@ export default function CategoriesPage() {
       const slug = formData.slug || generateSlug(formData.name);
       if (editingCategory) {
         await api.updateCategory(editingCategory._id, { name: formData.name, slug });
+        toast.success('Category updated successfully');
       } else {
         await api.createCategory({ name: formData.name, slug });
+        toast.success('Category created successfully');
       }
       refetch();
       handleCloseModal();
     } catch (error: any) {
-      alert(error.message || 'Failed to save category');
+      toast.error(error.message || 'Failed to save category');
     } finally {
       setSaving(false);
     }
@@ -61,9 +64,10 @@ export default function CategoriesPage() {
     setDeleting(id);
     try {
       await api.deleteCategory(id);
+      toast.success('Category deleted successfully');
       refetch();
     } catch (error: any) {
-      alert(error.message || 'Failed to delete category');
+      toast.error(error.message || 'Failed to delete category');
     } finally {
       setDeleting(null);
     }

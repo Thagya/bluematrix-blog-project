@@ -16,30 +16,37 @@ export function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-40">
+    <nav className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">B</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">BlueBlog</span>
+            <span className="text-xl font-bold text-gray-900">BlueMatrix</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <Link href="/" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
               Home
             </Link>
             {isAuthenticated ? (
               <>
-                <Link href="/cms" className="text-gray-700 hover:text-blue-600 transition-colors">
+                <Link href="/cms" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
                   Dashboard
                 </Link>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600">{user?.name}</span>
+                <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-semibold">
+                        {user?.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                  </div>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                   >
                     Logout
                   </button>
@@ -48,14 +55,14 @@ export function Navbar() {
             ) : (
               <div className="flex items-center gap-3">
                 <Link
-                  href="/login"
-                  className="px-4 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors"
+                  href="/auth/login"
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-blue-600 transition-colors font-medium"
                 >
                   Login
                 </Link>
                 <Link
-                  href="/register"
-                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  href="/auth/register"
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
                 >
                   Sign Up
                 </Link>
@@ -97,8 +104,8 @@ export function Navbar() {
                 >
                   Dashboard
                 </Link>
-                <div className="px-4 py-2 text-sm text-gray-600">
-                  {user?.name}
+                <div className="px-4 py-2 text-sm text-gray-600 border-t border-gray-100">
+                  Signed in as <strong>{user?.name}</strong>
                 </div>
                 <button
                   onClick={() => {
@@ -113,14 +120,14 @@ export function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href="/auth/login"
                   className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Login
                 </Link>
                 <Link
-                  href="/register"
+                  href="/auth/register"
                   className="block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >

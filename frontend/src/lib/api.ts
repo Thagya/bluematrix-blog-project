@@ -54,7 +54,7 @@ export const api = {
     },
     updateCategory: async (id: string, data: any) => {
         const res = await fetch(`${API_URL}/categories/${id}`, {
-            method: 'PATCH',
+            method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify(data),
         });
@@ -75,7 +75,7 @@ export const postsAPI = {
         if (params?.category) queryParams.append('category', params.category);
         if (params?.page) queryParams.append('page', params.page.toString());
         if (params?.limit) queryParams.append('limit', params.limit.toString());
-        if (params?.search) queryParams.append('search', params.search);
+        if (params?.search) queryParams.append('q', params.search);
 
         const queryString = queryParams.toString();
         const url = `${API_URL}/posts${queryString ? `?${queryString}` : ''}`;
@@ -95,6 +95,21 @@ export const postsAPI = {
     },
     getOne: async (id: string) => {
         const res = await fetch(`${API_URL}/posts/${id}`, {
+            headers: getHeaders(),
+        });
+        return handleResponse(res);
+    },
+    update: async (id: string, data: any) => {
+        const res = await fetch(`${API_URL}/posts/${id}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(data),
+        });
+        return handleResponse(res);
+    },
+    delete: async (id: string) => {
+        const res = await fetch(`${API_URL}/posts/${id}`, {
+            method: 'DELETE',
             headers: getHeaders(),
         });
         return handleResponse(res);
