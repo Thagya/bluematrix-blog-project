@@ -19,3 +19,4 @@ export const multerOptions = {
         fileSize: config.upload.maxFileSize,
     },
 };
+
