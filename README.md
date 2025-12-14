@@ -75,7 +75,7 @@ Git
 
 🚀 Installation & Setup
 1. Clone the Repository
-git clone https://github.com/Thagya/bluematrix-blog.git
+git clone https://github.com/Thagya/bluematrix-blog-project.git
 cd bluematrix-blog
 
 3. Backend Setup
