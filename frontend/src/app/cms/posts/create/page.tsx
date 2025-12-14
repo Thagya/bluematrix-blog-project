@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { postsAPI, categoriesAPI } from '@/lib/api';
+import { categoriesAPI } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ImageUpload } from '@/components/cms/ImageUpload';
@@ -10,10 +10,13 @@ import { RichTextEditor } from '@/components/cms/RichTextEditor';
 import toast from 'react-hot-toast';
 import type { Category } from '@/types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function CreatePostPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [imageFile, setImageFile] = useState<File | null>(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -21,7 +24,6 @@ export default function CreatePostPage() {
         excerpt: '',
         category: '',
         tags: '',
-        featuredImage: '',
         status: 'draft' as 'draft' | 'published',
     });
 
@@ -38,6 +40,14 @@ export default function CreatePostPage() {
         }
     };
 
+    const handleImageChange = (file: any) => {
+        if (file instanceof File) {
+            setImageFile(file);
+        } else {
+            setImageFile(null);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -46,19 +56,66 @@ export default function CreatePostPage() {
             return;
         }
 
+        if (!formData.title.trim()) {
+            toast.error('Please enter a title');
+            return;
+        }
+
+        if (!formData.content.trim()) {
+            toast.error('Please enter content');
+            return;
+        }
+
         try {
             setLoading(true);
-            const tagsArray = formData.tags ? formData.tags.split(',').map(t => t.trim()) : [];
+            
+            // Create FormData for multipart upload
+            const submitData = new FormData();
+            submitData.append('title', formData.title);
+            submitData.append('content', formData.content);
+            submitData.append('excerpt', formData.excerpt);
+            submitData.append('category', formData.category);
+            submitData.append('status', formData.status);
+            
+            // Add tags
+            const tagsArray = formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : [];
+            submitData.append('tags', JSON.stringify(tagsArray));
 
-            await postsAPI.create({
-                ...formData,
-                tags: tagsArray,
+            // Add image if selected
+            if (imageFile) {
+                submitData.append('featuredImage', imageFile);
+            }
+
+            // Get token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                toast.error('Please login first');
+                router.push('/auth/login');
+                return;
+            }
+
+            // Make API call
+            const response = await fetch(`${API_URL}/posts`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: submitData,
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || errorData.error || 'Failed to create post');
+            }
+
+            const result = await response.json();
+            console.log('Post created:', result);
 
             toast.success('Post created successfully!');
             router.push('/cms/posts');
         } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Failed to create post');
+            console.error('Create post error:', error);
+            toast.error(error.message || 'Failed to create post');
         } finally {
             setLoading(false);
         }
@@ -71,7 +128,7 @@ export default function CreatePostPage() {
                 <p className="text-gray-600">Share your thoughts with the world</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="card space-y-6">
+            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
                 <Input
                     label="Title"
                     placeholder="Enter post title..."
@@ -93,8 +150,8 @@ export default function CreatePostPage() {
                 />
 
                 <ImageUpload
-                    onChange={(url) => setFormData({ ...formData, featuredImage: url })}
-                    value={formData.featuredImage}
+                    onChange={handleImageChange}
+                    value=""
                 />
 
                 <div>
@@ -104,7 +161,7 @@ export default function CreatePostPage() {
                     <select
                         value={formData.category}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="input-field"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         required
                     >
                         <option value="">Select a category</option>
@@ -135,7 +192,7 @@ export default function CreatePostPage() {
                                 value="draft"
                                 checked={formData.status === 'draft'}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                                className="text-purple-600 focus:ring-purple-400"
+                                className="text-blue-600 focus:ring-blue-400"
                             />
                             <span>Draft</span>
                         </label>
@@ -146,7 +203,7 @@ export default function CreatePostPage() {
                                 value="published"
                                 checked={formData.status === 'published'}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                                className="text-purple-600 focus:ring-purple-400"
+                                className="text-blue-600 focus:ring-blue-400"
                             />
                             <span>Published</span>
                         </label>
@@ -155,12 +212,13 @@ export default function CreatePostPage() {
 
                 <div className="flex space-x-4 pt-4">
                     <Button type="submit" variant="primary" isLoading={loading}>
-                        Create Post
+                        {loading ? 'Creating...' : 'Create Post'}
                     </Button>
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/cms/posts')}
+                        disabled={loading}
                     >
                         Cancel
                     </Button>

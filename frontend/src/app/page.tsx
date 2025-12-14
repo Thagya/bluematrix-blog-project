@@ -39,6 +39,9 @@ export default function HomePage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // Calculate total pages
+    const totalPages = meta.total && meta.limit ? Math.ceil(meta.total / meta.limit) : 1;
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Hero Section */}
@@ -100,7 +103,9 @@ export default function HomePage() {
 
                 {/* Posts List */}
                 {loading ? (
-                    <Loading />
+                    <div className="flex justify-center items-center min-h-[400px]">
+                        <Loading />
+                    </div>
                 ) : posts.length === 0 ? (
                     <div className="bg-white rounded-lg shadow-md p-12 text-center">
                         <svg
@@ -128,7 +133,7 @@ export default function HomePage() {
                         <PostList posts={posts} />
 
                         {/* Pagination */}
-                        {meta.pages > 1 && (
+                        {totalPages > 1 && (
                             <div className="mt-8 flex justify-center items-center gap-2">
                                 <button
                                     onClick={() => handlePageChange(currentPage - 1)}
@@ -139,14 +144,15 @@ export default function HomePage() {
                                 </button>
 
                                 <div className="flex gap-1">
-                                    {Array.from({ length: meta.pages }, (_, i) => i + 1).map((page) => (
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                         <button
                                             key={page}
                                             onClick={() => handlePageChange(page)}
-                                            className={`px-4 py-2 border rounded-md text-sm font-medium ${currentPage === page
-                                                ? 'bg-blue-600 text-white border-blue-600'
-                                                : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                                                }`}
+                                            className={`px-4 py-2 border rounded-md text-sm font-medium ${
+                                                currentPage === page
+                                                    ? 'bg-blue-600 text-white border-blue-600'
+                                                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                                            }`}
                                         >
                                             {page}
                                         </button>
@@ -155,7 +161,7 @@ export default function HomePage() {
 
                                 <button
                                     onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === meta.pages}
+                                    disabled={currentPage === totalPages}
                                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Next

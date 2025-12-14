@@ -1,171 +1,180 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { postsAPI, categoriesAPI } from '@/lib/api';
-import { Input } from '@/components/ui/Input';
+import { postsAPI } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
-import { ImageUpload } from '@/components/cms/ImageUpload';
-import { RichTextEditor } from '@/components/cms/RichTextEditor';
+import { Loading } from '@/components/ui/Loading';
+import { formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import type { Category } from '@/types';
+import { Post } from '@/types';
 
-export default function CreatePostPage() {
+export default function PostsListPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState<Category[]>([]);
-
-    const [formData, setFormData] = useState({
-        title: '',
-        content: '',
-        excerpt: '',
-        category: '',
-        tags: '',
-        featuredImage: '',
-        status: 'draft' as 'draft' | 'published',
-    });
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [deleting, setDeleting] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchCategories();
+        fetchPosts();
     }, []);
 
-    const fetchCategories = async () => {
-        try {
-            const data = await categoriesAPI.getAll();
-            setCategories(data);
-        } catch (error) {
-            toast.error('Failed to load categories');
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!formData.category) {
-            toast.error('Please select a category');
-            return;
-        }
-
+    const fetchPosts = async () => {
         try {
             setLoading(true);
-            const tagsArray = formData.tags ? formData.tags.split(',').map(t => t.trim()) : [];
-
-            await postsAPI.create({
-                ...formData,
-                tags: tagsArray,
-            });
-
-            toast.success('Post created successfully!');
-            router.push('/cms/posts');
+            const response = await postsAPI.getMyPosts();
+            setPosts(response.data || response || []);
         } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Failed to create post');
+            toast.error('Failed to load posts');
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this post?')) return;
+
+        setDeleting(id);
+        try {
+            await postsAPI.delete(id);
+            toast.success('Post deleted successfully');
+            fetchPosts();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to delete post');
+        } finally {
+            setDeleting(null);
+        }
+    };
+
+    if (loading) return <Loading />;
+
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Post</h1>
-                <p className="text-gray-600">Share your thoughts with the world</p>
+        <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">My Posts</h1>
+                    <p className="text-gray-600">Manage your blog posts</p>
+                </div>
+                <Link href="/cms/posts/create">
+                    <Button>
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Post
+                    </Button>
+                </Link>
             </div>
 
-            <form onSubmit={handleSubmit} className="card space-y-6">
-                <Input
-                    label="Title"
-                    placeholder="Enter post title..."
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                />
-
-                <RichTextEditor
-                    value={formData.content}
-                    onChange={(content) => setFormData({ ...formData, content })}
-                />
-
-                <Input
-                    label="Excerpt (Optional)"
-                    placeholder="Brief summary of your post..."
-                    value={formData.excerpt}
-                    onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                />
-
-                <ImageUpload
-                    onChange={(url) => setFormData({ ...formData, featuredImage: url })}
-                    value={formData.featuredImage}
-                />
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Category *
-                    </label>
-                    <select
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="input-field"
-                        required
-                    >
-                        <option value="">Select a category</option>
-                        {categories.map((cat) => (
-                            <option key={cat._id} value={cat._id}>
-                                {cat.name}
-                            </option>
-                        ))}
-                    </select>
+            {posts.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">No posts yet</h3>
+                    <p className="mt-2 text-gray-500">Create your first blog post to get started</p>
+                    <Link href="/cms/posts/create" className="mt-6 inline-block">
+                        <Button>Create Post</Button>
+                    </Link>
                 </div>
-
-                <Input
-                    label="Tags (comma separated)"
-                    placeholder="e.g., technology, coding, tutorial"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                />
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Status
-                    </label>
-                    <div className="flex space-x-4">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="status"
-                                value="draft"
-                                checked={formData.status === 'draft'}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                                className="text-purple-600 focus:ring-purple-400"
-                            />
-                            <span>Draft</span>
-                        </label>
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="status"
-                                value="published"
-                                checked={formData.status === 'published'}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                                className="text-purple-600 focus:ring-purple-400"
-                            />
-                            <span>Published</span>
-                        </label>
+            ) : (
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Title
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Category
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date
+                                    </th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {posts.map((post) => (
+                                    <tr key={post._id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-medium text-gray-900">{post.title}</div>
+                                            {post.excerpt && (
+                                                <div className="text-sm text-gray-500 line-clamp-1">{post.excerpt}</div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                                {post.category?.name || 'Uncategorized'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                post.status === 'published' 
+                                                    ? 'bg-green-100 text-green-700' 
+                                                    : 'bg-yellow-100 text-yellow-700'
+                                            }`}>
+                                                {post.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {formatDate(post.createdAt)}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-3">
+                                                <Link 
+                                                    href={`/post/${post._id}`}
+                                                    target="_blank"
+                                                    className="text-gray-600 hover:text-gray-900"
+                                                    title="View post"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </Link>
+                                                <Link 
+                                                    href={`/cms/posts/edit/${post._id}`}
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                    title="Edit post"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleDelete(post._id)}
+                                                    disabled={deleting === post._id}
+                                                    className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                                                    title="Delete post"
+                                                >
+                                                    {deleting === post._id ? (
+                                                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <div className="flex space-x-4 pt-4">
-                    <Button type="submit" variant="primary" isLoading={loading}>
-                        Create Post
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => router.back()}
-                    >
-                        Cancel
-                    </Button>
-                </div>
-            </form>
+            )}
         </div>
     );
 }

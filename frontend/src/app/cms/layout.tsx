@@ -6,14 +6,22 @@ import { useAuth } from '@/context/AuthContext';
 import { CMSSidebar } from '@/components/layout/CMSSidebar';
 
 export default function CMSLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
+    if (!loading && !isAuthenticated) {
+      router.push('/auth/login');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return null;

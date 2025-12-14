@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useCategories } from '@/hooks/useCategories';
+import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -11,16 +12,50 @@ import { generateSlug } from '@/lib/utils';
 import { Category } from '@/types';
 import toast from 'react-hot-toast';
 
+interface CategoryWithCreator extends Category {
+  createdBy?: string;
+}
+
 export default function CategoriesPage() {
+  const { user } = useAuth();
   const { categories, loading, refetch } = useCategories();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithCreator | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', slug: '' });
+  const [categoryCreators, setCategoryCreators] = useState<Record<string, string>>({});
 
-  const handleOpenModal = (category?: Category) => {
+  // Load category creators from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('categoryCreators');
+    if (stored) {
+      try {
+        setCategoryCreators(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to parse category creators');
+      }
+    }
+  }, []);
+
+  // Save category creators to localStorage
+  const saveCategoryCreators = (creators: Record<string, string>) => {
+    localStorage.setItem('categoryCreators', JSON.stringify(creators));
+    setCategoryCreators(creators);
+  };
+
+  // Check if current user created this category
+  const canModifyCategory = (categoryId: string) => {
+    return categoryCreators[categoryId] === user?.id;
+  };
+
+  const handleOpenModal = (category?: CategoryWithCreator) => {
     if (category) {
+      // Check if user can edit this category
+      if (!canModifyCategory(category._id)) {
+        toast.error('You can only edit categories you created');
+        return;
+      }
       setEditingCategory(category);
       setFormData({ name: category.name, slug: category.slug || '' });
     } else {
@@ -42,16 +77,30 @@ export default function CategoriesPage() {
 
     try {
       const slug = formData.slug || generateSlug(formData.name);
+      
       if (editingCategory) {
+        // Check permission again
+        if (!canModifyCategory(editingCategory._id)) {
+          toast.error('You can only edit categories you created');
+          return;
+        }
         await api.updateCategory(editingCategory._id, { name: formData.name, slug });
         toast.success('Category updated successfully');
       } else {
-        await api.createCategory({ name: formData.name, slug });
+        const newCategory = await api.createCategory({ name: formData.name, slug });
+        // Store the creator
+        const newCreators = {
+          ...categoryCreators,
+          [newCategory._id]: user?.id || ''
+        };
+        saveCategoryCreators(newCreators);
         toast.success('Category created successfully');
       }
+      
       refetch();
       handleCloseModal();
     } catch (error: any) {
+      console.error('Save category error:', error);
       toast.error(error.message || 'Failed to save category');
     } finally {
       setSaving(false);
@@ -59,14 +108,27 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
+    // Check if user can delete this category
+    if (!canModifyCategory(id)) {
+      toast.error('You can only delete categories you created');
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this category?')) return;
     
     setDeleting(id);
     try {
       await api.deleteCategory(id);
+      
+      // Remove from creators list
+      const newCreators = { ...categoryCreators };
+      delete newCreators[id];
+      saveCategoryCreators(newCreators);
+      
       toast.success('Category deleted successfully');
       refetch();
     } catch (error: any) {
+      console.error('Delete error:', error);
       toast.error(error.message || 'Failed to delete category');
     } finally {
       setDeleting(null);
@@ -103,29 +165,40 @@ export default function CategoriesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <div key={category._id} className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
-              {category.slug && (
-                <p className="text-sm text-gray-500 mb-4">Slug: {category.slug}</p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleOpenModal(category)}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(category._id)}
-                  disabled={deleting === category._id}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
-                >
-                  {deleting === category._id ? 'Deleting...' : 'Delete'}
-                </button>
+          {categories.map((category) => {
+            const isCreator = canModifyCategory(category._id);
+            
+            return (
+              <div key={category._id} className="bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
+                {category.slug && (
+                  <p className="text-sm text-gray-500 mb-4">Slug: {category.slug}</p>
+                )}
+                
+                {isCreator && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleOpenModal(category)}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(category._id)}
+                      disabled={deleting === category._id}
+                      className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                    >
+                      {deleting === category._id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                )}
+                
+                {!isCreator && (
+                  <p className="text-xs text-gray-400 italic">View only</p>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

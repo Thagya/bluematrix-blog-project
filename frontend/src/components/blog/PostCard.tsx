@@ -12,13 +12,17 @@ export function PostCard({ post }: PostCardProps) {
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       <Link href={`/post/${post._id}`}>
-        <div className="relative h-48 bg-gray-200">
+        <div className="relative h-48 bg-gray-200 rounded-t-lg overflow-hidden">
           {post.featuredImage ? (
             <Image
               src={post.featuredImage}
               alt={post.title}
               fill
               className="object-cover"
+              onError={(e) => {
+                console.error('Image failed to load:', post.featuredImage);
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
@@ -49,7 +53,7 @@ export function PostCard({ post }: PostCardProps) {
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-semibold">
-                  {post.author?.name?.charAt(0) || 'U'}
+                  {post.author?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
               <span className="text-sm text-gray-700">{post.author?.name || 'Unknown'}</span>

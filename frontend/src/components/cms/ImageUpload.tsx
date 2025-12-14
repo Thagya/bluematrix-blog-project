@@ -5,24 +5,42 @@ import Image from 'next/image';
 
 interface ImageUploadProps {
   value?: string;
-  onChange: (url: string) => void;
+  onChange: (file: File | string) => void;
 }
 
 export function ImageUpload({ value, onChange }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(value || null);
-  const [uploading, setUploading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    onChange(file as any);
+    // Pass the actual File object to parent
+    onChange(file);
+  };
+
+  const handleRemove = () => {
+    setPreview(null);
+    onChange('');
   };
 
   return (
@@ -44,11 +62,8 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
             </div>
             <button
               type="button"
-              onClick={() => {
-                setPreview(null);
-                onChange('');
-              }}
-              className="text-sm text-red-600 hover:text-red-700"
+              onClick={handleRemove}
+              className="text-sm text-red-600 hover:text-red-700 font-medium"
             >
               Remove Image
             </button>
