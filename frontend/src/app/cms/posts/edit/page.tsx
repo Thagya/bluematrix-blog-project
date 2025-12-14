@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import React, { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { postsAPI, categoriesAPI } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -11,10 +11,10 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import type { Category, Post } from '@/types';
 
-export default function EditPostPage() {
+export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = use(params);
+    const postId = resolvedParams.id;
     const router = useRouter();
-    const params = useParams();
-    const postId = params.id as string;
     
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -63,6 +63,7 @@ export default function EditPostPage() {
         } catch (error: any) {
             console.error('Failed to load post:', error);
             toast.error('Failed to load post');
+            setTimeout(() => router.push('/cms/posts'), 2000);
         } finally {
             setLoading(false);
         }

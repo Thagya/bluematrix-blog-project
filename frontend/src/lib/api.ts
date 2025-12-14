@@ -3,7 +3,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getHeaders = (isFormData = false) => {
     const headers: HeadersInit = {};
     
-    // Don't set Content-Type for FormData - browser will set it with boundary
     if (!isFormData) {
         headers['Content-Type'] = 'application/json';
     }
@@ -74,7 +73,7 @@ export const api = {
 };
 
 export const postsAPI = {
-    // Get all published posts (public)
+    // Get all published posts (public) - properly handles pagination and filtering
     getPublished: async (params?: { category?: string; page?: number; limit?: number; search?: string }) => {
         const queryParams = new URLSearchParams();
         if (params?.category) queryParams.append('category', params.category);
@@ -88,24 +87,48 @@ export const postsAPI = {
         const res = await fetch(url, {
             headers: getHeaders(),
         });
-        return handleResponse(res);
+        const response = await handleResponse(res);
+        return response;
     },
 
-    // Get user's own posts (authenticated)
+    // Get user's own posts (authenticated) - filters by current user
     getMyPosts: async () => {
         const res = await fetch(`${API_URL}/posts`, {
             headers: getHeaders(),
         });
-        const data = await handleResponse(res);
-        // If the response has a 'data' property, return it, otherwise return the response as is
-        return data.data ? data : { data: data };
+        const response = await handleResponse(res);
+        
+        // The backend returns all published posts, so we need to filter by current user
+        // Get current user from localStorage
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            return { data: [], meta: { total: 0, page: 1, limit: 10 } };
+        }
+        
+        const currentUser = JSON.parse(userStr);
+        const allPosts = response.data || response || [];
+        
+        // Filter posts where author._id or author matches current user id
+        const myPosts = allPosts.filter((post: any) => {
+            const authorId = typeof post.author === 'object' ? post.author._id || post.author.id : post.author;
+            return authorId === currentUser.id;
+        });
+        
+        return { 
+            data: myPosts, 
+            meta: { 
+                total: myPosts.length, 
+                page: 1, 
+                limit: myPosts.length 
+            } 
+        };
     },
 
     // Create post with FormData (for file upload)
     createWithFormData: async (formData: FormData) => {
         const res = await fetch(`${API_URL}/posts`, {
             method: 'POST',
-            headers: getHeaders(true), // true indicates FormData
+            headers: getHeaders(true),
             body: formData,
         });
         return handleResponse(res);
@@ -121,7 +144,7 @@ export const postsAPI = {
         return handleResponse(res);
     },
 
-    // Get single post
+    // Get single post by ID
     getOne: async (id: string) => {
         const res = await fetch(`${API_URL}/posts/${id}`, {
             headers: getHeaders(),

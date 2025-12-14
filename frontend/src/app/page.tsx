@@ -9,14 +9,14 @@ import { CategoryFilter } from '@/components/blog/CategoryFilter';
 import { Loading } from '@/components/ui/Loading';
 
 export default function HomePage() {
-    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [currentPage, setCurrentPage] = useState<number>(1);
 
     const { posts, loading, meta, refetch } = usePosts({
-        category: selectedCategory,
+        category: selectedCategory || undefined,
         page: currentPage,
-        search: searchQuery,
+        search: searchQuery || undefined,
     });
 
     const { categories, loading: categoriesLoading } = useCategories();
@@ -27,7 +27,7 @@ export default function HomePage() {
     }, [selectedCategory, searchQuery]);
 
     const handleCategoryChange = (categoryId: string | null) => {
-        setSelectedCategory(categoryId || '');
+        setSelectedCategory(categoryId);
     };
 
     const handleSearch = (query: string) => {
@@ -60,7 +60,7 @@ export default function HomePage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 {/* Search and Filter Section */}
                 <div className="mb-8 space-y-6">
-                    <SearchBar onSearch={handleSearch} />
+                    <SearchBar onSearch={handleSearch} placeholder="Search posts..." />
 
                     {!categoriesLoading && categories.length > 0 && (
                         <CategoryFilter
@@ -80,7 +80,7 @@ export default function HomePage() {
                                     Category: {categories.find(c => c._id === selectedCategory)?.name || 'Unknown'}
                                 </span>
                                 <button
-                                    onClick={() => setSelectedCategory('')}
+                                    onClick={() => setSelectedCategory(null)}
                                     className="ml-2 hover:text-blue-900"
                                 >
                                     ×
@@ -98,6 +98,13 @@ export default function HomePage() {
                                 </button>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Posts Count */}
+                {!loading && (
+                    <div className="mb-4 text-gray-600">
+                        Found {meta.total} {meta.total === 1 ? 'post' : 'posts'}
                     </div>
                 )}
 
@@ -127,6 +134,17 @@ export default function HomePage() {
                                 ? 'Try adjusting your filters or search query'
                                 : 'Check back later for new content'}
                         </p>
+                        {(searchQuery || selectedCategory) && (
+                            <button
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setSelectedCategory(null);
+                                }}
+                                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <>
@@ -144,19 +162,32 @@ export default function HomePage() {
                                 </button>
 
                                 <div className="flex gap-1">
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                        <button
-                                            key={page}
-                                            onClick={() => handlePageChange(page)}
-                                            className={`px-4 py-2 border rounded-md text-sm font-medium ${
-                                                currentPage === page
-                                                    ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {page}
-                                        </button>
-                                    ))}
+                                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                        let pageNum;
+                                        if (totalPages <= 5) {
+                                            pageNum = i + 1;
+                                        } else if (currentPage <= 3) {
+                                            pageNum = i + 1;
+                                        } else if (currentPage >= totalPages - 2) {
+                                            pageNum = totalPages - 4 + i;
+                                        } else {
+                                            pageNum = currentPage - 2 + i;
+                                        }
+                                        
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => handlePageChange(pageNum)}
+                                                className={`px-4 py-2 border rounded-md text-sm font-medium ${
+                                                    currentPage === pageNum
+                                                        ? 'bg-blue-600 text-white border-blue-600'
+                                                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 <button
