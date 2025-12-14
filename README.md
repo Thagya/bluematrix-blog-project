@@ -255,10 +255,12 @@ Swagger API Documentation
 Once the backend is running, visit:
 http://localhost:5000/api
 
-<img width="1919" height="999" alt="Screenshot 2025-12-13 165108" src="https://github.com/user-attachments/assets/d6ed5000-560a-4b53-83d6-e9873fbd2c86" />
+
 <img width="949" height="499" alt="image" src="https://github.com/user-attachments/assets/dfbaee83-2a51-469c-9524-2589f33888ec" />
 <img width="1896" height="997" alt="Screenshot 2025-12-14 121600" src="https://github.com/user-attachments/assets/14483e9f-1bc8-435e-a727-75c78a8bf5fa" />
 <img width="1892" height="1000" alt="Screenshot 2025-12-14 121528" src="https://github.com/user-attachments/assets/a15a4c2e-d2ea-4c14-9998-861c6749626b" />
+<img width="950" height="496" alt="image" src="https://github.com/user-attachments/assets/cb822e24-c11c-40c9-8825-6b864063b5e1" />
+
 
 
 📖 Usage Guide
