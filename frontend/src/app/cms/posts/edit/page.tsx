@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import { postsAPI, categoriesAPI } from '@/lib/api';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '@/components/cms/RichTextEditor';
@@ -11,10 +10,12 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import type { Category, Post } from '@/types';
 
-export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
-    const postId = resolvedParams.id;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+export default function EditPostPage() {
     const router = useRouter();
+    const params = useParams();
+    const postId = params.id as string;
     
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -39,15 +40,27 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [postData, categoriesData] = await Promise.all([
-                postsAPI.getOne(postId),
-                categoriesAPI.getAll(),
+            const token = localStorage.getItem('token');
+            
+            const [postRes, categoriesRes] = await Promise.all([
+                fetch(`${API_URL}/posts/${postId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`${API_URL}/categories`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
             ]);
+
+            if (!postRes.ok || !categoriesRes.ok) {
+                throw new Error('Failed to load data');
+            }
+
+            const postData = await postRes.json();
+            const categoriesData = await categoriesRes.json();
 
             setPost(postData);
             setCategories(categoriesData);
             
-            // Extract category ID if it's an object
             const categoryId = typeof postData.category === 'object' 
                 ? postData.category._id 
                 : postData.category;
@@ -63,7 +76,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         } catch (error: any) {
             console.error('Failed to load post:', error);
             toast.error('Failed to load post');
-            setTimeout(() => router.push('/cms/posts'), 2000);
+            router.push('/cms/posts');
         } finally {
             setLoading(false);
         }
@@ -93,20 +106,33 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 ? formData.tags.split(',').map(t => t.trim()).filter(t => t) 
                 : [];
 
-            await postsAPI.update(postId, {
-                title: formData.title,
-                content: formData.content,
-                excerpt: formData.excerpt,
-                category: formData.category,
-                tags: tagsArray,
-                status: formData.status,
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: formData.title,
+                    content: formData.content,
+                    excerpt: formData.excerpt,
+                    category: formData.category,
+                    tags: tagsArray,
+                    status: formData.status,
+                })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to update post');
+            }
 
             toast.success('Post updated successfully!');
             router.push('/cms/posts');
         } catch (error: any) {
             console.error('Update error:', error);
-            if (error.message.includes('403') || error.message.includes('Forbidden') || error.message.includes('Not allowed')) {
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
                 toast.error('You are not authorized to edit this post');
             } else {
                 toast.error(error.message || 'Failed to update post');
@@ -118,7 +144,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
     if (loading) {
         return (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto py-12">
                 <Loading />
             </div>
         );
@@ -178,7 +204,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                 fill
                                 className="object-cover"
                                 onError={(e) => {
-                                    console.error('Image failed to load:', post.featuredImage);
                                     (e.target as HTMLImageElement).style.display = 'none';
                                 }}
                             />

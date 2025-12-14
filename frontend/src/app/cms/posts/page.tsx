@@ -112,7 +112,7 @@ export default function PostsListPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                                {post.category?.name || 'Uncategorized'}
+                                                {typeof post.category === 'object' ? post.category.name : 'Uncategorized'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -140,15 +140,15 @@ export default function PostsListPage() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </Link>
-                                                <Link 
-                                                    href={`/cms/posts/edit/${post._id}`}
+                                                <button
+                                                    onClick={() => router.push(`/cms/posts/edit/${post._id}`)}
                                                     className="text-blue-600 hover:text-blue-900"
                                                     title="Edit post"
                                                 >
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
-                                                </Link>
+                                                </button>
                                                 <button
                                                     onClick={() => handleDelete(post._id)}
                                                     disabled={deleting === post._id}

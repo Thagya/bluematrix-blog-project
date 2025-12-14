@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { postsAPI } from '@/lib/api';
 import { Post } from '@/types';
 
@@ -11,68 +11,35 @@ interface UsePostsOptions {
 
 export function usePosts(options: UsePostsOptions = {}) {
     const [posts, setPosts] = useState<Post[]>([]);
-    const [meta, setMeta] = useState({ total: 0, limit: 10, page: 1 });
+    const [meta, setMeta] = useState({ total: 0, limit: 10, page: 1, pages: 1 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchPosts = async () => {
+    const fetchPosts = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
-            
-            // Only pass category if it's not empty
-            const params: any = {
-                page: options.page || 1,
-                limit: options.limit || 10,
-            };
-            
-            if (options.category && options.category !== '') {
-                params.category = options.category;
-            }
-            
-            if (options.search && options.search.trim() !== '') {
-                params.search = options.search.trim();
-            }
-            
-            const response = await postsAPI.getPublished(params);
-            
-            // Handle response format
-            if (response.data && Array.isArray(response.data)) {
-                setPosts(response.data);
-                if (response.meta) {
-                    setMeta({
-                        total: response.meta.total || 0,
-                        limit: response.meta.limit || 10,
-                        page: response.meta.page || 1,
-                    });
-                }
-            } else if (Array.isArray(response)) {
-                setPosts(response);
-                setMeta({
-                    total: response.length,
-                    limit: options.limit || 10,
-                    page: options.page || 1,
-                });
-            } else {
-                console.error('Unexpected response format:', response);
-                setPosts([]);
+            const response = await postsAPI.getPublished(options);
+            setPosts(response.data || []);
+            if (response.meta) {
+                setMeta(response.meta);
             }
         } catch (err: any) {
-            console.error('Fetch posts error:', err);
+            console.error('Error fetching posts:', err);
             setError(err.message || 'Failed to fetch posts');
             setPosts([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, [options.category, options.page, options.limit, options.search]);
 
     useEffect(() => {
         fetchPosts();
-    }, [options.category, options.page, options.limit, options.search]);
+    }, [fetchPosts]);
 
-    const refetch = () => {
+    const refetch = useCallback(() => {
         fetchPosts();
-    };
+    }, [fetchPosts]);
 
     return { posts, loading, error, refetch, meta };
 }
@@ -95,7 +62,7 @@ export function usePost(id: string) {
                 const response = await postsAPI.getOne(id);
                 setPost(response);
             } catch (err: any) {
-                console.error('Fetch post error:', err);
+                console.error('Error fetching post:', err);
                 setError(err.message || 'Failed to fetch post');
                 setPost(null);
             } finally {
