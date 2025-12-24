@@ -11,11 +11,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   const configService = app.get(ConfigService);
-  const uploadsDir = configService.get('UPLOADS_DIR') || './uploads';
+  const uploadsDir = configService.get('UPLOADS_DIR') || './uploads/images';
   const baseUrl = configService.get('BASE_URL') || 'http://localhost:5000';
-
-  // Allows access to uploaded images via URL
-
   app.use('/uploads', express.static(join(process.cwd(), uploadsDir)));
 
   // CORS for local dev 

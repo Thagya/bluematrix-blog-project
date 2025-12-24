@@ -53,10 +53,30 @@ export default function HomePage() {
             params.append('page', currentPage.toString());
             params.append('limit', '10');
 
+            console.log('Fetching posts with params:', params.toString());
+
             const response = await fetch(`${API_URL}/posts?${params.toString()}`);
             const data = await response.json();
-            
-            setPosts(data.data || []);
+
+            let fetchedPosts = data.data || [];
+
+            // Client-side fallback filtering if backend returns all posts despite category param
+            if (selectedCategory && fetchedPosts.length > 0) {
+                const isFiltered = fetchedPosts.every((p: Post) => {
+                    const catId = p.category && typeof p.category === 'object' ? p.category._id : p.category;
+                    return catId === selectedCategory;
+                });
+
+                if (!isFiltered) {
+                    console.warn('Backend returned unfiltered posts. Applying client-side filter.');
+                    fetchedPosts = fetchedPosts.filter((p: Post) => {
+                        const catId = p.category && typeof p.category === 'object' ? p.category._id : p.category;
+                        return catId === selectedCategory;
+                    });
+                }
+            }
+
+            setPosts(fetchedPosts);
             if (data.meta) {
                 setMeta(data.meta);
             }
@@ -183,11 +203,10 @@ export default function HomePage() {
                                         <button
                                             key={page}
                                             onClick={() => handlePageChange(page)}
-                                            className={`px-4 py-2 border rounded-md text-sm font-medium ${
-                                                currentPage === page
+                                            className={`px-4 py-2 border rounded-md text-sm font-medium ${currentPage === page
                                                     ? 'bg-blue-600 text-white border-blue-600'
                                                     : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             {page}
                                         </button>

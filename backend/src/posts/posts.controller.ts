@@ -26,14 +26,27 @@ export class PostsController {
     @HttpPost()
     @UseInterceptors(FileInterceptor('featuredImage', multerOptions))
     async create(@Body() dto: CreatePostDto, @GetUser('userId') userId: string, @UploadedFile() file: Express.Multer.File) {
-        const imageUrl = file ? `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${file.filename}` : dto.featuredImage;
+        const imageUrl = file ? `/uploads/${file.filename}` : dto.featuredImage;
         return this.ps.create({ ...dto, author: new Types.ObjectId(userId), category: new Types.ObjectId(dto.category), featuredImage: imageUrl });
     }
 
     @UseGuards(JwtAuthGuard)
     @Put(':id')
-    update(@Param('id') id: string, @Body() dto: UpdatePostDto, @GetUser('userId') userId: string) {
-        return this.ps.update(id, dto as any, userId);
+    @UseInterceptors(FileInterceptor('featuredImage', multerOptions))
+    async update(
+        @Param('id') id: string,
+        @Body() dto: UpdatePostDto,
+        @GetUser('userId') userId: string,
+        @UploadedFile() file: Express.Multer.File
+    ) {
+        const updateData: any = { ...dto };
+        if (file) {
+            updateData.featuredImage = `/uploads/${file.filename}`;
+        }
+        if (dto.category) {
+            updateData.category = new Types.ObjectId(dto.category);
+        }
+        return this.ps.update(id, updateData, userId);
     }
 
     @UseGuards(JwtAuthGuard)

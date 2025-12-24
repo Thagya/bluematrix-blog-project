@@ -138,11 +138,7 @@ export default function EditPostPage() {
                 return;
             }
 
-            // Note: The API might expect a PUT request with JSON or FormData. 
-            // The `postsAPI.update` in `api.ts` uses JSON. 
-            // If we need to upload an image during update, we might need a different API method or modify `update` to handle FormData.
-            // Let's check `api.ts` again. It has `createWithFormData` but `update` sends JSON.
-            // We should probably create `updateWithFormData` or just use fetch directly here like in `create/page.tsx` but with PUT.
+           
 
             const response = await fetch(`${API_URL}/posts/${postId}`, {
                 method: 'PUT',

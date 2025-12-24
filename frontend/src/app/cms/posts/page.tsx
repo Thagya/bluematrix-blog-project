@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { Post } from '@/types';
 
@@ -29,26 +30,26 @@ export default function PostsListPage() {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            
+
             const response = await fetch(`${API_URL}/posts`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (!response.ok) throw new Error('Failed to fetch posts');
-            
+
             const data = await response.json();
             const allPosts = data.data || data || [];
-            
+
             // Filter to show only current user's posts
             const myPosts = allPosts.filter((post: Post) => {
-                const authorId = typeof post.author === 'object' 
+                const authorId = typeof post.author === 'object'
                     ? (post.author as any)._id || (post.author as any).id
                     : post.author;
                 return authorId === user?.id;
             });
-            
+
             setPosts(myPosts);
         } catch (error: any) {
             toast.error('Failed to load posts');
@@ -70,12 +71,12 @@ export default function PostsListPage() {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.message || 'Failed to delete post');
             }
-            
+
             toast.success('Post deleted successfully');
             fetchMyPosts();
         } catch (error: any) {
@@ -90,7 +91,7 @@ export default function PostsListPage() {
     };
 
     const canModifyPost = (post: Post): boolean => {
-        const authorId = typeof post.author === 'object' 
+        const authorId = typeof post.author === 'object'
             ? (post.author as any)._id || (post.author as any).id
             : post.author;
         return authorId === user?.id;
@@ -141,6 +142,9 @@ export default function PostsListPage() {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Image
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Title
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -160,9 +164,28 @@ export default function PostsListPage() {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {posts.map((post) => {
                                     const canModify = canModifyPost(post);
-                                    
+
                                     return (
                                         <tr key={post._id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="relative h-12 w-20 rounded overflow-hidden bg-gray-100">
+                                                    {post.featuredImage ? (
+                                                        <Image
+                                                            src={getImageUrl(post.featuredImage)}
+                                                            alt={post.title}
+                                                            fill
+                                                            className="object-cover"
+                                                            sizes="80px"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full w-full text-gray-400">
+                                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm font-medium text-gray-900">{post.title}</div>
                                                 {post.excerpt && (
@@ -175,11 +198,10 @@ export default function PostsListPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                    post.status === 'published' 
-                                                        ? 'bg-green-100 text-green-700' 
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${post.status === 'published'
+                                                        ? 'bg-green-100 text-green-700'
                                                         : 'bg-yellow-100 text-yellow-700'
-                                                }`}>
+                                                    }`}>
                                                     {post.status}
                                                 </span>
                                             </td>
@@ -188,7 +210,7 @@ export default function PostsListPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-3">
-                                                    <Link 
+                                                    <Link
                                                         href={`/post/${post._id}`}
                                                         target="_blank"
                                                         className="text-gray-600 hover:text-gray-900"

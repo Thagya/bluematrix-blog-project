@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Post, PostDocument } from './schemas/post.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class PostsService {
-  constructor(@InjectModel(Post.name) private postModel: Model<PostDocument>) {}
+  constructor(@InjectModel(Post.name) private postModel: Model<PostDocument>) { }
 
   async create(data: Partial<Post>): Promise<PostDocument> {
     const post = new this.postModel(data);
@@ -16,7 +16,13 @@ export class PostsService {
     const { q, category, page = 1, limit = 10 } = query;
     const filter: any = { status: 'published' };
     if (q) filter.title = { $regex: q, $options: 'i' };
-    if (category) filter.category = category;
+    if (category && category !== '') {
+      try {
+        filter.category = new Types.ObjectId(category);
+      } catch (e) {
+        // If not a valid ObjectId, ignore the filter
+      }
+    }
     const skip = (page - 1) * limit;
     const posts = await this.postModel.find(filter).populate('category').populate('author', '-password').skip(skip).limit(limit).sort({ createdAt: -1 }).exec();
     const total = await this.postModel.countDocuments(filter).exec();
