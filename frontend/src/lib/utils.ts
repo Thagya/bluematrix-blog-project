@@ -27,3 +27,21 @@ export function generateSlug(text: string): string {
         .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
         .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 }
+
+export function getImageUrl(path: string | undefined | null): string {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+
+    // Normalize backslashes to forward slashes
+    const normalizedPath = path.replace(/\\/g, '/');
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+    // Ensure path starts with / if not present
+    const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+
+    // Remove trailing slash from API URL if present to avoid double slashes
+    const cleanApiUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+
+    return `${cleanApiUrl}${cleanPath}`;
+}

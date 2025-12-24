@@ -1,22 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { categoriesAPI } from '@/lib/api';
+import { useRouter, useParams } from 'next/navigation';
+import { categoriesAPI, postsAPI } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ImageUpload } from '@/components/cms/ImageUpload';
 import { RichTextEditor } from '@/components/cms/RichTextEditor';
+import { Loading } from '@/components/ui/Loading';
 import toast from 'react-hot-toast';
-import type { Category } from '@/types';
+import type { Category, Post } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-export default function CreatePostPage() {
+export default function EditPostPage() {
     const router = useRouter();
+    const params = useParams();
+    const postId = params.id as string;
+
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [categories, setCategories] = useState<Category[]>([]);
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
 
     const [formData, setFormData] = useState({
         title: '',
@@ -28,8 +34,17 @@ export default function CreatePostPage() {
     });
 
     useEffect(() => {
-        fetchCategories();
-    }, []);
+        const init = async () => {
+            try {
+                await Promise.all([fetchCategories(), fetchPost()]);
+            } catch (error) {
+                console.error('Initialization error:', error);
+            } finally {
+                setInitialLoading(false);
+            }
+        };
+        init();
+    }, [postId]);
 
     const fetchCategories = async () => {
         try {
@@ -37,6 +52,34 @@ export default function CreatePostPage() {
             setCategories(data);
         } catch (error) {
             toast.error('Failed to load categories');
+        }
+    };
+
+    const fetchPost = async () => {
+        try {
+            const post = await postsAPI.getOne(postId);
+            if (!post) {
+                toast.error('Post not found');
+                router.push('/cms/posts');
+                return;
+            }
+
+            setFormData({
+                title: post.title,
+                content: post.content,
+                excerpt: post.excerpt || '',
+                category: typeof post.category === 'object' ? post.category._id : post.category,
+                tags: post.tags ? post.tags.join(', ') : '',
+                status: post.status,
+            });
+
+            if (post.featuredImage) {
+                setCurrentImageUrl(post.featuredImage);
+            }
+        } catch (error) {
+            console.error('Error fetching post:', error);
+            toast.error('Failed to load post details');
+            router.push('/cms/posts');
         }
     };
 
@@ -69,6 +112,11 @@ export default function CreatePostPage() {
         try {
             setLoading(true);
 
+            // If we have a new image file, we need to use FormData
+            // If not, we can use JSON for the update if the backend supports it, 
+            // OR we can use FormData for everything to be consistent. 
+            // Let's use FormData to be safe and consistent with Create.
+
             const submitData = new FormData();
             submitData.append('title', formData.title);
             submitData.append('content', formData.content);
@@ -90,8 +138,14 @@ export default function CreatePostPage() {
                 return;
             }
 
-            const response = await fetch(`${API_URL}/posts`, {
-                method: 'POST',
+            // Note: The API might expect a PUT request with JSON or FormData. 
+            // The `postsAPI.update` in `api.ts` uses JSON. 
+            // If we need to upload an image during update, we might need a different API method or modify `update` to handle FormData.
+            // Let's check `api.ts` again. It has `createWithFormData` but `update` sends JSON.
+            // We should probably create `updateWithFormData` or just use fetch directly here like in `create/page.tsx` but with PUT.
+
+            const response = await fetch(`${API_URL}/posts/${postId}`, {
+                method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -100,27 +154,29 @@ export default function CreatePostPage() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || errorData.error || 'Failed to create post');
+                throw new Error(errorData.message || errorData.error || 'Failed to update post');
             }
 
             const result = await response.json();
-            console.log('Post created:', result);
+            console.log('Post updated:', result);
 
-            toast.success('Post created successfully!');
+            toast.success('Post updated successfully!');
             router.push('/cms/posts');
         } catch (error: any) {
-            console.error('Create post error:', error);
-            toast.error(error.message || 'Failed to create post');
+            console.error('Update post error:', error);
+            toast.error(error.message || 'Failed to update post');
         } finally {
             setLoading(false);
         }
     };
 
+    if (initialLoading) return <Loading />;
+
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create New Post</h1>
-                <p className="text-gray-600">Share your thoughts with the world</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Post</h1>
+                <p className="text-gray-600">Update your blog post</p>
             </div>
 
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
@@ -146,7 +202,7 @@ export default function CreatePostPage() {
 
                 <ImageUpload
                     onChange={handleImageChange}
-                    value=""
+                    value={currentImageUrl}
                 />
 
                 <div>
@@ -207,7 +263,7 @@ export default function CreatePostPage() {
 
                 <div className="flex space-x-4 pt-4">
                     <Button type="submit" variant="primary" isLoading={loading}>
-                        {loading ? 'Creating...' : 'Create Post'}
+                        {loading ? 'Updating...' : 'Update Post'}
                     </Button>
                     <Button
                         type="button"

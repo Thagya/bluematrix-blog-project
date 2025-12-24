@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { RichTextEditor } from '@/components/cms/RichTextEditor';
@@ -15,12 +16,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 export default function EditPostPage() {
     const router = useRouter();
     const params = useParams();
+    const { user } = useAuth();
     const postId = params.id as string;
     
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
     const [post, setPost] = useState<Post | null>(null);
+    const [canEdit, setCanEdit] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -32,10 +35,10 @@ export default function EditPostPage() {
     });
 
     useEffect(() => {
-        if (postId) {
+        if (postId && user) {
             fetchData();
         }
-    }, [postId]);
+    }, [postId, user]);
 
     const fetchData = async () => {
         try {
@@ -57,6 +60,19 @@ export default function EditPostPage() {
 
             const postData = await postRes.json();
             const categoriesData = await categoriesRes.json();
+
+            const authorId = typeof postData.author === 'object' 
+                ? postData.author._id || postData.author.id 
+                : postData.author;
+            
+            const userCanEdit = authorId === user?.id;
+            setCanEdit(userCanEdit);
+
+            if (!userCanEdit) {
+                toast.error('You can only edit posts you created');
+                router.push('/cms/posts');
+                return;
+            }
 
             setPost(postData);
             setCategories(categoriesData);
@@ -84,6 +100,11 @@ export default function EditPostPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!canEdit) {
+            toast.error('You can only edit posts you created');
+            return;
+        }
 
         if (!formData.category) {
             toast.error('Please select a category');
@@ -150,14 +171,14 @@ export default function EditPostPage() {
         );
     }
 
-    if (!post) {
+    if (!post || !canEdit) {
         return (
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Post Not Found</h2>
-                    <p className="text-gray-600 mb-6">The post you're looking for doesn't exist or you don't have permission to edit it.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+                    <p className="text-gray-600 mb-6">You can only edit posts you created.</p>
                     <Button onClick={() => router.push('/cms/posts')}>
-                        Back to Posts
+                        Back to My Posts
                     </Button>
                 </div>
             </div>
@@ -203,6 +224,7 @@ export default function EditPostPage() {
                                 alt="Featured" 
                                 fill
                                 className="object-cover"
+                                sizes="(max-width: 1200px) 100vw, 1200px"
                                 onError={(e) => {
                                     (e.target as HTMLImageElement).style.display = 'none';
                                 }}

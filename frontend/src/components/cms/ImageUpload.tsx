@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { getImageUrl } from '@/lib/utils';
 
 interface ImageUploadProps {
   value?: string;
@@ -10,6 +11,13 @@ interface ImageUploadProps {
 
 export function ImageUpload({ value, onChange }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(value || null);
+
+  // Update preview when value changes (e.g. when loading post data)
+  useEffect(() => {
+    if (value) {
+      setPreview(value);
+    }
+  }, [value]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,13 +56,13 @@ export function ImageUpload({ value, onChange }: ImageUploadProps) {
       <label className="block text-sm font-medium text-gray-700 mb-2">
         Featured Image
       </label>
-      
+
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
         {preview ? (
           <div className="relative">
             <div className="relative h-48 w-full mb-4">
               <Image
-                src={preview}
+                src={getImageUrl(preview)}
                 alt="Preview"
                 fill
                 className="object-cover rounded-lg"

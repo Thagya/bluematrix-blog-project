@@ -2,7 +2,9 @@
 
 @layer base {
   body {
-    background-color: rgb(249 250 251);
+    background-color: #f8fafc;
+    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+    background-size: 24px 24px;
     color: rgb(17 24 39);
   }
 }
@@ -20,5 +22,5 @@
   -webkit-line-clamp: 3;
   line-clamp: 3;
   -webkit-box-orient: vertical;
-  overflow: hidden;
+  overflow: hidden;     
 }

@@ -14,10 +14,11 @@ async function bootstrap() {
   const uploadsDir = configService.get('UPLOADS_DIR') || './uploads';
   const baseUrl = configService.get('BASE_URL') || 'http://localhost:5000';
 
-  // Serve static uploads folder
+  // Allows access to uploaded images via URL
+
   app.use('/uploads', express.static(join(process.cwd(), uploadsDir)));
 
-  // CORS for local dev (adjust for production)
+  // CORS for local dev 
   app.enableCors({
     origin: true,
     credentials: true,
