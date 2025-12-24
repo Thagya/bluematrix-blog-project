@@ -11,10 +11,15 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   const configService = app.get(ConfigService);
-  const uploadsDir = configService.get('UPLOADS_DIR') || './uploads/images';
+ 
   const baseUrl = configService.get('BASE_URL') || 'http://localhost:5000';
-  app.use('/uploads', express.static(join(process.cwd(), uploadsDir)));
+  
+// Serve static files from uploads directory
+const uploadsPath = join(process.cwd(), 'uploads/images');
+app.use('/uploads', express.static(uploadsPath));
 
+Logger.log(`📁 Serving static files from: ${uploadsPath}`, 'StaticFiles');
+Logger.log(`🖼️  Images accessible at: ${baseUrl}/uploads/`, 'StaticFiles');
   // CORS for local dev 
   app.enableCors({
     origin: true,

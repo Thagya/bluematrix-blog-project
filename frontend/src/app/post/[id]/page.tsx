@@ -41,46 +41,47 @@ export default function PostPage() {
 
   const authorInitial = authorName.charAt(0).toUpperCase();
 
+  const imageUrl = getImageUrl(post.featuredImage);
+
   return (
     <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link href="/" className="text-blue-600 hover:text-blue-700 mb-6 inline-block">
-        ← Back to posts
+        ← Back to Blog
       </Link>
 
       <header className="mb-8">
-        <div className="mb-4">
-          <span className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700 rounded-full">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
             {categoryName}
           </span>
+          <span className="text-gray-500 text-sm">{formatDate(post.createdAt)}</span>
         </div>
 
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
           {post.title}
         </h1>
 
-        <div className="flex items-center gap-4 text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold">
-                {authorInitial}
-              </span>
-            </div>
-            <span className="font-medium">{authorName}</span>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+            {authorInitial}
           </div>
-          <span>•</span>
-          <time>{formatDate(post.createdAt)}</time>
+          <div>
+            <p className="font-semibold text-gray-900">{authorName}</p>
+            <p className="text-gray-500 text-sm">Author</p>
+          </div>
         </div>
       </header>
 
-      {post.featuredImage && (
+      {imageUrl && (
         <div className="relative h-96 mb-8 rounded-lg overflow-hidden bg-gray-100">
           <Image
-            src={getImageUrl(post.featuredImage)}
+            src={imageUrl}
             alt={post.title}
             fill
             className="object-cover"
-            sizes="(max-width: 1200px) 100vw, 1200px"
+            unoptimized
             onError={(e) => {
+              console.error('Image load error:', imageUrl);
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
             }}
@@ -102,14 +103,21 @@ export default function PostPage() {
         <div className="mt-12 pt-8 border-t border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
           <div className="flex flex-wrap gap-2">
-            {post.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full"
-              >
-                #{typeof tag === 'string' ? tag.replace(/[\[\]"]/g, '') : tag}
-              </span>
-            ))}
+            {post.tags.map((tag, index) => {
+              // Clean up tag string - remove brackets and quotes if present
+              const cleanTag = typeof tag === 'string'
+                ? tag.replace(/[\[\]"]/g, '').trim()
+                : String(tag);
+
+              return cleanTag ? (
+                <span
+                  key={index}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full"
+                >
+                  #{cleanTag}
+                </span>
+              ) : null;
+            })}
           </div>
         </div>
       )}

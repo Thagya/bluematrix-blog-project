@@ -26,18 +26,22 @@ export function PostCard({ post }: PostCardProps) {
     ? post.author.name
     : 'Unknown';
 
+  const imageUrl = getImageUrl(post.featuredImage);
+
   return (
     <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden p-0">
       <Link href={`/post/${post._id}`} className="block">
-        <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-          {post.featuredImage ? (
+        <div className="relative h-48 w-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+          {imageUrl ? (
             <Image
-              src={getImageUrl(post.featuredImage)}
+              src={imageUrl}
               alt={post.title}
               fill
               className="object-cover hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              unoptimized
               onError={(e) => {
+                console.error('Image load error:', imageUrl);
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
               }}
