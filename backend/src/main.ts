@@ -22,7 +22,7 @@ Logger.log(`📁 Serving static files from: ${uploadsPath}`, 'StaticFiles');
 Logger.log(`🖼️  Images accessible at: ${baseUrl}/uploads/`, 'StaticFiles');
   // CORS for local dev 
   app.enableCors({
-    origin:  'https://bluematrix-blog-project.vercel.app',
+    origin:  process.env.FRONTEND_URL,
     credentials: true,
   });
 
