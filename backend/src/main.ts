@@ -12,7 +12,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
  
-  const baseUrl = configService.get('BASE_URL') || 'http://localhost:5000';
+  const baseUrl = configService.get('BASE_URL') || 'https://bluematrix-blog-project.onrender.com/';
   
 // Serve static files from uploads directory
 const uploadsPath = join(process.cwd(), 'uploads/images');
@@ -22,7 +22,7 @@ Logger.log(`📁 Serving static files from: ${uploadsPath}`, 'StaticFiles');
 Logger.log(`🖼️  Images accessible at: ${baseUrl}/uploads/`, 'StaticFiles');
   // CORS for local dev 
   app.enableCors({
-    origin: true,
+    origin:  'https://bluematrix-blog-project.vercel.app',
     credentials: true,
   });
 
