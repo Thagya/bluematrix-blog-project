@@ -11,15 +11,21 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   const configService = app.get(ConfigService);
- 
-  const baseUrl = configService.get('BASE_URL') || 'https://bluematrix-blog-project.onrender.com/';
-  
-// Serve static files from uploads directory
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true }));
+ const frontendUrl = configService.get('FRONTENDURL');
+  app.enableCors({
+    origin: [frontendUrl, 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+  // Serve static files from uploads directory
 const uploadsPath = join(process.cwd(), 'uploads/images');
 app.use('/uploads', express.static(uploadsPath));
 
 Logger.log(`📁 Serving static files from: ${uploadsPath}`, 'StaticFiles');
-Logger.log(`🖼️  Images accessible at: ${baseUrl}/uploads/`, 'StaticFiles');
+Logger.log(`🖼️  Images accessible at: ${frontendUrl}/uploads/`, 'StaticFiles');
   // CORS for local dev 
   app.enableCors({
     origin:  process.env.FRONTENDURL,
@@ -38,6 +44,6 @@ Logger.log(`🖼️  Images accessible at: ${baseUrl}/uploads/`, 'StaticFiles');
 
   const port = configService.get('PORT') || 5000;
   await app.listen(port);
-  Logger.log(`Server running at ${baseUrl} (port ${port})`);
+  Logger.log(`Server running at ${frontendUrl} (port ${port})`);
 }
 bootstrap();
